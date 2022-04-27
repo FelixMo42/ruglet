@@ -1,40 +1,15 @@
+mod vertices;
+
+pub use crate::vertices::{Vertex, Vertices};
+
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
     window::{WindowBuilder, Window},
 };
 
-use wgpu::util::DeviceExt;
 use wgpu::*;
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-struct Vertex {
-    position: [f32; 3],
-    color: [f32; 3],
-}
-
-impl Vertex {
-    const ATTRIBS: [wgpu::VertexAttribute; 2] =
-        wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3];
-
-    fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &Self::ATTRIBS,
-        }
-    }
-}
-
-unsafe impl bytemuck::Pod for Vertex {}
-unsafe impl bytemuck::Zeroable for Vertex {}
-
-const VERTICES: &[Vertex] = &[
-    Vertex { position: [0.0, 0.5, 0.0], color: [1.0, 0.0, 0.0] },
-    Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 1.0, 0.0] },
-    Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
-];
+use wgpu::util::DeviceExt;
 
 struct State {
     surface: Surface,
@@ -43,7 +18,6 @@ struct State {
     config: SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: RenderPipeline,
-    vertex_buffer: Buffer,
 }
 
 impl State {
@@ -132,14 +106,6 @@ impl State {
             multiview: None,
         });
 
-        let vertex_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Vertex Buffer"),
-                contents: bytemuck::cast_slice(VERTICES),
-                usage: BufferUsages::VERTEX,
-            }
-        );
-
         return State {
             surface,
             device,
@@ -147,7 +113,6 @@ impl State {
             config,
             size,
             render_pipeline,
-            vertex_buffer
         };
     }
 
@@ -160,7 +125,6 @@ impl State {
         }
     }
 
-
     fn render(&mut self) -> Result<(), SurfaceError> {
         let output = self.surface.get_current_texture()?;
 
@@ -170,23 +134,38 @@ impl State {
             label: Some("Render Encoder"),
         });
 
+        let vertices = [
+            Vertex {
+                position: [0.0, 0.5, 0.0],
+                color: [0.0, 1.0, 0.0],
+            },
+            Vertex {
+                position: [-0.5, -0.5, 0.0],
+                color: [0.0, 1.0, 0.0],
+            },
+            Vertex {
+                position: [0.5, -0.5, 0.0],
+                color: [0.0, 1.0, 0.0],
+            }
+        ];
+
+        let vertex_buffer = self.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Vertex Buffer"),
+                contents: bytemuck::cast_slice(&vertices),
+                usage: BufferUsages::VERTEX,
+            }
+        );
+        
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[
-                    // This is what [[location(0)]] in the fragment shader targets
                     wgpu::RenderPassColorAttachment {
                         view: &view,
                         resolve_target: None,
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(
-                                wgpu::Color {
-                                    r: 0.1,
-                                    g: 0.2,
-                                    b: 0.3,
-                                    a: 1.0,
-                                }
-                            ),
+                            load: wgpu::LoadOp::Load,
                             store: true,
                         }
                     }
@@ -195,18 +174,16 @@ impl State {
             });
         
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.draw(0..(VERTICES.len() as u32), 0..1);
+            render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+            render_pass.draw(0..vertices.len() as u32, 0..1);
         }
     
-        // submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
     
         Ok(())
     }
 }
-
 
 async fn run() {
     //
@@ -234,7 +211,10 @@ async fn run() {
             WindowEvent::CloseRequested => { *control_flow = ControlFlow::Exit; }
 
             // resize handlers
-            WindowEvent::Resized(size)  => state.resize(*size),
+            WindowEvent::Resized(size) => {
+                state.resize(*size);
+                window.request_redraw();
+            },
 
             // ignore everything else
             _ => {}
