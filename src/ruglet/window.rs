@@ -1,4 +1,5 @@
 pub use crate::ruglet::state::State;
+pub use crate::ruglet::vertices::Vertex;
 
 use winit::{
     event::*,
@@ -9,12 +10,14 @@ use winit::{
 use wgpu::*;
 
 pub trait Window {
-    fn on_key_down(&self) {}
+    fn on_draw(&self) -> &[Vertex];
 
-    fn on_draw(&self) {}
+    fn on_key_down(&mut self, _chr: char) {}
+    fn on_mouse_moved(&mut self, _cord: (f32, f32)) {}
+    fn on_resize(&mut self, _size: (f32, f32)) {}
 }
 
-pub async fn run<App: Window>(app: App) {
+pub async fn run<App: 'static + Window>(mut app: App) {
     //
     let event_loop = EventLoop::new();
 
@@ -44,6 +47,17 @@ pub async fn run<App: Window>(app: App) {
             // resize handlers
             WindowEvent::Resized(size) => {
                 state.resize(*size);
+                app.on_resize((size.width as f32, size.height as f32));
+                window.request_redraw();
+            }
+
+            WindowEvent::CursorMoved { position, .. } => {
+                app.on_mouse_moved((position.x as f32, position.y as f32));
+                window.request_redraw();
+            }
+
+            WindowEvent::ReceivedCharacter(chr) => {
+                app.on_key_down(*chr);
                 window.request_redraw();
             }
 
@@ -52,7 +66,7 @@ pub async fn run<App: Window>(app: App) {
         },
 
         Event::RedrawRequested(window_id) if window_id == window.id() => {
-            match state.render() {
+            match state.render(app.on_draw()) {
                 Ok(_) => {}
 
                 // Reconfigure the surface if lost
