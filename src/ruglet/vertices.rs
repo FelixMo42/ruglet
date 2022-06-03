@@ -8,11 +8,13 @@ use wgpu::*;
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
     pub position: [f32; 3],
+    pub tex_coords: [f32; 2],
     pub color: [f32; 3],
 }
 
 impl Vertex {
-    const ATTRIBS: [VertexAttribute; 2] = vertex_attr_array![0 => Float32x3, 1 => Float32x3];
+    const ATTRIBS: [VertexAttribute; 3] =
+        vertex_attr_array![0 => Float32x3, 1 => Float32x2, 2 => Float32x3];
 
     pub fn desc<'a>() -> VertexBufferLayout<'a> {
         return VertexBufferLayout {
@@ -36,14 +38,12 @@ impl Vertices {
     pub fn new(device: &Device, vertices: &[Vertex]) -> Vertices {
         return Vertices {
             length: vertices.len() as u32,
-            vertex_buffer: device.create_buffer_init(
-                &wgpu::util::BufferInitDescriptor {
-                    label: Some("Vertex Buffer"),
-                    contents: bytemuck::cast_slice(vertices),
-                    usage: BufferUsages::VERTEX,
-                }
-            ) 
-        } 
+            vertex_buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Vertex Buffer"),
+                contents: bytemuck::cast_slice(vertices),
+                usage: BufferUsages::VERTEX,
+            }),
+        };
     }
 }
 

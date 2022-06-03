@@ -56,14 +56,17 @@ impl Window for TestApp {
         self.vertices = vec![
             Vertex {
                 position: self.camera.project((x, -y + 100.0)),
+                tex_coords: [0.0, 0.0],
                 color: self.color.clone(),
             },
             Vertex {
                 position: self.camera.project((x - 100.0, -y - 100.0)),
+                tex_coords: [1.0, 0.0],
                 color: self.color.clone(),
             },
             Vertex {
                 position: self.camera.project((x + 100.0, -y - 100.0)),
+                tex_coords: [0.0, 1.0],
                 color: self.color.clone(),
             },
         ];
@@ -73,14 +76,17 @@ impl Window for TestApp {
         self.vertices = vec![
             Vertex {
                 position: [0.0, 0.5, 0.0],
+                tex_coords: [0.0, 0.0],
                 color: self.color.clone(),
             },
             Vertex {
                 position: [-0.5, -0.5, 0.0],
+                tex_coords: [1.0, 0.0],
                 color: self.color.clone(),
             },
             Vertex {
                 position: [0.5, -0.5, 0.0],
+                tex_coords: [0.0, 1.0],
                 color: self.color.clone(),
             },
         ];
