@@ -19,7 +19,7 @@ struct ScreenSize {
     h: f32;
 };
 
-[[group(1), binding(0)]]
+[[group(0), binding(0)]]
 var<uniform> screen_size: ScreenSize;
 
 [[stage(vertex)]]
@@ -40,10 +40,10 @@ fn vs_main(model: VertexInput) -> VertexOutput {
 // Fragment shader //
 /////////////////////
 
-[[group(0), binding(0)]]
+[[group(1), binding(0)]]
 var t_diffuse: texture_2d<f32>;
 
-[[group(0), binding(1)]]
+[[group(1), binding(1)]]
 var s_diffuse: sampler;
 
 [[stage(fragment)]]

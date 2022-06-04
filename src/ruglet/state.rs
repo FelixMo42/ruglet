@@ -168,8 +168,8 @@ impl State {
         });
 
         let bind_groups = [
-            create_texture_bindgroup(&device, &queue),
             create_screen_size_bindgroup(&device, size),
+            create_texture_bindgroup(&device, &queue),
         ];
 
         let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
