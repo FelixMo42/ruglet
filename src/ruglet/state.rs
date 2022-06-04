@@ -13,7 +13,16 @@ pub struct State {
     pub config: SurfaceConfiguration,
     pub size: winit::dpi::PhysicalSize<u32>,
     pub render_pipeline: RenderPipeline,
-    pub diffuse_bind_group: wgpu::BindGroup, // NEW!
+    pub diffuse_bind_group: wgpu::BindGroup,
+    pub screen_size_buffer: wgpu::Buffer,
+    pub screen_size_bind_group: wgpu::BindGroup,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct ScreenSizeUniform {
+    width: f32,
+    height: f32,
 }
 
 impl State {
@@ -108,9 +117,44 @@ impl State {
             source: ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
 
+        let screen_size = ScreenSizeUniform {
+            width: size.width as f32 / 2.0,
+            height: size.height as f32 / 2.0,
+        };
+
+        let screen_size_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Screen size Buffer"),
+            contents: bytemuck::cast_slice(&[screen_size]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let screen_size_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+                label: Some("screen_size_bind_group_layout"),
+            });
+
+        let screen_size_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &screen_size_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: screen_size_buffer.as_entire_binding(),
+            }],
+            label: Some("screen_size_bind_group"),
+        });
+
         let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
-            bind_group_layouts: &[&texture_bind_group_layout],
+            bind_group_layouts: &[&texture_bind_group_layout, &screen_size_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -157,6 +201,8 @@ impl State {
             size,
             render_pipeline,
             diffuse_bind_group,
+            screen_size_buffer,
+            screen_size_bind_group,
         };
     }
 
@@ -205,6 +251,7 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_bind_group(1, &self.screen_size_bind_group, &[]);
             render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
             render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
             render_pass.draw(0..vertices.len() as u32, 0..1);

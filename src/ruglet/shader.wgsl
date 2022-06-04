@@ -14,10 +14,23 @@ struct VertexOutput {
 // Vertex shader //
 ///////////////////
 
+struct ScreenSize {
+    w: f32;
+    h: f32;
+};
+
+[[group(1), binding(0)]]
+var<uniform> screen_size: ScreenSize;
+
 [[stage(vertex)]]
 fn vs_main(model: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-    out.clip_position = vec4<f32>(model.position, 1.0);
+    out.clip_position = vec4<f32>(
+        model.position.x / screen_size.w - 1.0,
+        -model.position.y / screen_size.h + 1.0,
+        model.position.z,
+        1.0
+    );
     out.tex_coords = model.tex_coords;
     out.color = model.color;
     return out;
@@ -29,6 +42,7 @@ fn vs_main(model: VertexInput) -> VertexOutput {
 
 [[group(0), binding(0)]]
 var t_diffuse: texture_2d<f32>;
+
 [[group(0), binding(1)]]
 var s_diffuse: sampler;
 
