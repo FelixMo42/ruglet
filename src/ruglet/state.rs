@@ -1,6 +1,7 @@
 pub use crate::ruglet::texture;
 pub use crate::ruglet::vertices::Vertex;
 
+use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
 use wgpu::util::DeviceExt;
@@ -13,9 +14,102 @@ pub struct State {
     pub config: SurfaceConfiguration,
     pub size: winit::dpi::PhysicalSize<u32>,
     pub render_pipeline: RenderPipeline,
-    pub diffuse_bind_group: wgpu::BindGroup,
-    pub screen_size_buffer: wgpu::Buffer,
-    pub screen_size_bind_group: wgpu::BindGroup,
+    pub bind_groups: [Binding; 2],
+}
+
+pub struct Binding {
+    layout: BindGroupLayout,
+    group: BindGroup,
+}
+
+fn create_texture_bindgroup(device: &Device, queue: &Queue) -> Binding {
+    let diffuse_bytes = include_bytes!("tree.png");
+    let diffuse_texture =
+        texture::Texture::from_bytes(device, queue, diffuse_bytes, "tree.png").unwrap();
+
+    let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("texture_bind_group_layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                // This should match the filterable field of the
+                // corresponding Texture entry above.
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+    });
+
+    return Binding {
+        group: device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("texture_bind_group"),
+            layout: &layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                },
+            ],
+        }),
+        layout,
+    };
+}
+
+fn create_screen_size_bindgroup(device: &Device, size: PhysicalSize<u32>) -> Binding {
+    let screen_size = ScreenSizeUniform {
+        width: size.width as f32 / 2.0,
+        height: size.height as f32 / 2.0,
+    };
+
+    let screen_size_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Screen size Buffer"),
+        contents: bytemuck::cast_slice(&[screen_size]),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+
+    let screen_size_bind_group_layout =
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("screen_size_bind_group_layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+
+    let screen_size_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout: &screen_size_bind_group_layout,
+        entries: &[wgpu::BindGroupEntry {
+            binding: 0,
+            resource: screen_size_buffer.as_entire_binding(),
+        }],
+        label: Some("screen_size_bind_group"),
+    });
+
+    return Binding {
+        layout: screen_size_bind_group_layout,
+        group: screen_size_bind_group,
+    };
 }
 
 #[repr(C)]
@@ -68,93 +162,19 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let diffuse_bytes = include_bytes!("tree.png");
-        let diffuse_texture =
-            texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "tree.png").unwrap();
-
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        // This should match the filterable field of the
-                        // corresponding Texture entry above.
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-                label: Some("texture_bind_group_layout"),
-            });
-
-        let diffuse_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &texture_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                },
-            ],
-            label: Some("diffuse_bind_group"),
-        });
-
         let shader = device.create_shader_module(&ShaderModuleDescriptor {
             label: Some("Shader"),
             source: ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
 
-        let screen_size = ScreenSizeUniform {
-            width: size.width as f32 / 2.0,
-            height: size.height as f32 / 2.0,
-        };
-
-        let screen_size_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Screen size Buffer"),
-            contents: bytemuck::cast_slice(&[screen_size]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
-        let screen_size_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }],
-                label: Some("screen_size_bind_group_layout"),
-            });
-
-        let screen_size_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &screen_size_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: screen_size_buffer.as_entire_binding(),
-            }],
-            label: Some("screen_size_bind_group"),
-        });
+        let bind_groups = [
+            create_texture_bindgroup(&device, &queue),
+            create_screen_size_bindgroup(&device, size),
+        ];
 
         let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
-            bind_group_layouts: &[&texture_bind_group_layout, &screen_size_bind_group_layout],
+            bind_group_layouts: &[&bind_groups[0].layout, &bind_groups[1].layout],
             push_constant_ranges: &[],
         });
 
@@ -200,9 +220,7 @@ impl State {
             config,
             size,
             render_pipeline,
-            diffuse_bind_group,
-            screen_size_buffer,
-            screen_size_bind_group,
+            bind_groups,
         };
     }
 
@@ -251,8 +269,8 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(1, &self.screen_size_bind_group, &[]);
-            render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
+            render_pass.set_bind_group(0, &self.bind_groups[0].group, &[]);
+            render_pass.set_bind_group(1, &self.bind_groups[1].group, &[]);
             render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
             render_pass.draw(0..vertices.len() as u32, 0..1);
         }
