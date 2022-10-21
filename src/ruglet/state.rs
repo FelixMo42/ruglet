@@ -121,6 +121,15 @@ struct ScreenSizeUniform {
     height: f32,
 }
 
+impl ScreenSizeUniform {
+    fn new(width: u32, height: u32) -> ScreenSizeUniform {
+        return ScreenSizeUniform {
+            width: width as f32 / 2.0,
+            height: height as f32 / 2.0,
+        };
+    }
+}
+
 impl State {
     pub async fn new(window: &Window) -> Self {
         let size = window.inner_size();
@@ -229,6 +238,26 @@ impl State {
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
+
+            let screen_size_buffer =
+                self.device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some("Screen size Buffer"),
+                        contents: bytemuck::cast_slice(&[ScreenSizeUniform::new(
+                            new_size.width,
+                            new_size.height,
+                        )]),
+                        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                    });
+
+            self.bind_groups[0].group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &self.bind_groups[0].layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: screen_size_buffer.as_entire_binding(),
+                }],
+                label: Some("screen_size_bind_group"),
+            });
         }
     }
 
