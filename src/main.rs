@@ -3,61 +3,45 @@ pub mod ruglet;
 use ruglet::prelude::*;
 
 struct TestApp {
-    color: [f32; 3],
-    vertices: Vec<Vertex>,
+    mouse: Vec2,
+    quads: Vec<Sprite>,
 }
 
 impl TestApp {
     fn new() -> TestApp {
         return TestApp {
-            color: [1.0, 1.0, 1.0],
-            vertices: vec![],
+            mouse: Vec2 { x: 0.0, y: 0.0 },
+            quads: vec![],
         };
     }
 }
 
-fn pos((x, y): (f32, f32)) -> [f32; 3] {
-    return [x, y, 0.0];
-}
-
 impl Window for TestApp {
     fn on_mouse_moved(&mut self, (x, y): (f32, f32)) {
-        self.vertices = vec![
-            Vertex {
-                position: pos((x - 100.0, y - 100.0)),
-                tex_coords: [0.0, 0.0],
-                color: self.color.clone(),
-            },
-            Vertex {
-                position: pos((x - 100.0, y + 100.0)),
-                tex_coords: [0.0, 1.0],
-                color: self.color.clone(),
-            },
-            Vertex {
-                position: pos((x + 100.0, y - 100.0)),
-                tex_coords: [1.0, 0.0],
-                color: self.color.clone(),
-            },
-            Vertex {
-                position: pos((x + 100.0, y + 100.0)),
-                tex_coords: [1.0, 1.0],
-                color: self.color.clone(),
-            },
-            Vertex {
-                position: pos((x + 100.0, y - 100.0)),
-                tex_coords: [1.0, 0.0],
-                color: self.color.clone(),
-            },
-            Vertex {
-                position: pos((x - 100.0, y + 100.0)),
-                tex_coords: [0.0, 1.0],
-                color: self.color.clone(),
-            },
-        ];
+        self.mouse.x = x;
+        self.mouse.y = y;
     }
 
-    fn on_draw(&self) -> &[Vertex] {
-        return &self.vertices;
+    fn on_mouse_down(&mut self, _button: winit::event::MouseButton) {
+        self.quads.push(Sprite::new(
+            self.mouse.x - 100.0,
+            self.mouse.y - 100.0,
+            self.mouse.x + 100.0,
+            self.mouse.y + 100.0,
+        ))
+    }
+
+    fn on_draw(&self, renderer: &mut Renderer) {
+        for quad in &self.quads {
+            renderer.draw(quad);
+        }
+
+        renderer.draw(&Sprite::new(
+            self.mouse.x - 100.0,
+            self.mouse.y - 100.0,
+            self.mouse.x + 100.0,
+            self.mouse.y + 100.0,
+        ));
     }
 }
 

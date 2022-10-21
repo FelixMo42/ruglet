@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 pub use crate::ruglet::texture;
 pub use crate::ruglet::vertices::Vertex;
 
@@ -27,42 +29,42 @@ fn create_texture_bindgroup(device: &Device, queue: &Queue) -> Binding {
     let diffuse_texture =
         texture::Texture::from_bytes(device, queue, diffuse_bytes, "tree.png").unwrap();
 
-    let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+    let layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
         label: Some("texture_bind_group_layout"),
         entries: &[
-            wgpu::BindGroupLayoutEntry {
+            BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Texture {
                     multisampled: false,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: TextureViewDimension::D2,
+                    sample_type: TextureSampleType::Float { filterable: true },
                 },
-                count: None,
+                count: NonZeroU32::new(1),
             },
-            wgpu::BindGroupLayoutEntry {
+            BindGroupLayoutEntry {
                 binding: 1,
-                visibility: wgpu::ShaderStages::FRAGMENT,
+                visibility: ShaderStages::FRAGMENT,
                 // This should match the filterable field of the
                 // corresponding Texture entry above.
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                count: None,
+                ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                count: NonZeroU32::new(1),
             },
         ],
     });
 
     return Binding {
-        group: device.create_bind_group(&wgpu::BindGroupDescriptor {
+        group: device.create_bind_group(&BindGroupDescriptor {
             label: Some("texture_bind_group"),
             layout: &layout,
             entries: &[
-                wgpu::BindGroupEntry {
+                BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+                    resource: BindingResource::TextureViewArray(&[&diffuse_texture.view]),
                 },
-                wgpu::BindGroupEntry {
+                BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                    resource: BindingResource::SamplerArray(&[&diffuse_texture.sampler]),
                 },
             ],
         }),
@@ -140,7 +142,7 @@ impl State {
         let (device, queue) = adapter
             .request_device(
                 &DeviceDescriptor {
-                    features: Features::empty(),
+                    features: Features::TEXTURE_BINDING_ARRAY,
                     limits: if cfg!(target_arch = "wasm32") {
                         Limits::downlevel_webgl2_defaults()
                     } else {
@@ -162,10 +164,7 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let shader = device.create_shader_module(&ShaderModuleDescriptor {
-            label: Some("Shader"),
-            source: ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
-        });
+        let shader = device.create_shader_module(&include_wgsl!("shader.wgsl"));
 
         let bind_groups = [
             create_screen_size_bindgroup(&device, size),
