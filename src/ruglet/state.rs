@@ -142,7 +142,7 @@ impl State {
         //
         let adapter = instance
             .enumerate_adapters(Backends::all())
-            .filter(|adapter| surface.get_preferred_format(&adapter).is_some())
+            .filter(|adapter| !surface.get_supported_formats(&adapter).is_empty())
             .next()
             .unwrap();
 
@@ -166,14 +166,15 @@ impl State {
 
         let config = SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
-            format: surface.get_preferred_format(&adapter).unwrap(),
+            format: surface.get_supported_formats(&adapter)[0],
+            alpha_mode: CompositeAlphaMode::Opaque,
             width: size.width,
             height: size.height,
             present_mode: PresentMode::Fifo,
         };
         surface.configure(&device, &config);
 
-        let shader = device.create_shader_module(&include_wgsl!("shader.wgsl"));
+        let shader = device.create_shader_module(include_wgsl!("shader.wgsl"));
 
         let bind_groups = [
             create_screen_size_bindgroup(&device, size),
@@ -197,11 +198,11 @@ impl State {
             fragment: Some(FragmentState {
                 module: &shader,
                 entry_point: "fs_main",
-                targets: &[ColorTargetState {
+                targets: &[Some(ColorTargetState {
                     format: config.format,
                     blend: Some(BlendState::REPLACE),
                     write_mask: ColorWrites::ALL,
-                }],
+                })],
             }),
             primitive: PrimitiveState {
                 topology: PrimitiveTopology::TriangleList,
@@ -285,14 +286,14 @@ impl State {
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
-                color_attachments: &[wgpu::RenderPassColorAttachment {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
                         store: true,
                     },
-                }],
+                })],
                 depth_stencil_attachment: None,
             });
 
