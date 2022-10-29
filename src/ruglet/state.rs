@@ -25,9 +25,8 @@ pub struct Binding {
 }
 
 fn create_texture_bindgroup(device: &Device, queue: &Queue) -> Binding {
-    let diffuse_bytes = include_bytes!("tree.png");
-    let diffuse_texture =
-        texture::Texture::from_bytes(device, queue, diffuse_bytes, "tree.png").unwrap();
+    let bytes = include_bytes!("../tree.png");
+    let texture = texture::Texture::from_bytes(device, queue, bytes, "tree.png").unwrap();
 
     let layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
         label: Some("texture_bind_group_layout"),
@@ -60,11 +59,11 @@ fn create_texture_bindgroup(device: &Device, queue: &Queue) -> Binding {
             entries: &[
                 BindGroupEntry {
                     binding: 0,
-                    resource: BindingResource::TextureViewArray(&[&diffuse_texture.view]),
+                    resource: BindingResource::TextureViewArray(&[&texture.view]),
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::SamplerArray(&[&diffuse_texture.sampler]),
+                    resource: BindingResource::SamplerArray(&[&texture.sampler]),
                 },
             ],
         }),
