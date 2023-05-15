@@ -134,14 +134,13 @@ impl State {
         let size = window.inner_size();
 
         // The instance is a handle to our GPU
-        // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
-        let instance = Instance::new(Backends::all());
-        let surface = unsafe { instance.create_surface(window) };
+        let instance = Instance::new(InstanceDescriptor::default());
+        let surface = unsafe { instance.create_surface(window).expect("ERR; surface?!?") };
 
         //
         let adapter = instance
             .enumerate_adapters(Backends::all())
-            .filter(|adapter| !surface.get_supported_formats(&adapter).is_empty())
+            .filter(|adapter| adapter.is_surface_supported(&surface))
             .next()
             .unwrap();
 
@@ -163,13 +162,24 @@ impl State {
             .await
             .unwrap();
 
+        let surface_caps = surface.get_capabilities(&adapter);
+
+        let surface_format = surface_caps
+            .formats
+            .iter()
+            .copied()
+            // .filter(|f| f.describe().srgb)
+            .next()
+            .unwrap_or(surface_caps.formats[0]);
+
         let config = SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
-            format: surface.get_supported_formats(&adapter)[0],
+            format: surface_format,
             alpha_mode: CompositeAlphaMode::Opaque,
             width: size.width,
             height: size.height,
             present_mode: PresentMode::Fifo,
+            view_formats: vec![],
         };
         surface.configure(&device, &config);
 
