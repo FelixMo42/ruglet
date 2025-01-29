@@ -1,5 +1,5 @@
-use crate::layout::prelude::*;
-use crate::ruglet::prelude::*;
+use crate::layout::*;
+use crate::ruglet::*;
 
 pub struct Div {
     style: Style,
@@ -42,19 +42,19 @@ impl Div {
 
 impl Div {
     fn calc_size(&self, max: &Area) -> Vec2 {
-        let w = self.style.width.unwrap_or(max.w);
-        let h = self.style.height.unwrap_or(max.h);
+        let w = self.style.width.unwrap_or(max.w());
+        let h = self.style.height.unwrap_or(max.h());
 
         return Vec2 { x: w, y: h };
     }
 
-    pub fn render(&self, renderer: &mut Renderer, area: &Area) -> Area {
+    pub fn render(&self, renderer: &mut Frame, area: &Area) -> Area {
         // How big am I?
         let my_area = area.resize(self.calc_size(area));
 
         // Draw a background if needed
         if let Some(color) = self.style.bg {
-            renderer.quad(&Sprite::new_with_color(&my_area, color));
+            renderer.quad(my_area, color);
         }
 
         // Calculare the total amount area for my children
@@ -64,23 +64,23 @@ impl Div {
         }
 
         let mut fit_area = child_area.clone();
-        let mut max_y = fit_area.y;
+        let mut max_y = fit_area.0.y;
 
         // Draw children
         for child in &self.children {
             let size = child.calc_size(&fit_area);
 
             // Wrap
-            if fit_area.x + size.x > child_area.x + child_area.w {
-                fit_area.x = child_area.x;
-                fit_area.y = max_y;
+            if fit_area.0.x + size.x > child_area.1.x {
+                fit_area.0.x = child_area.0.x;
+                fit_area.0.y = max_y;
             }
 
             // Draw the child
             let area = child.render(renderer, &fit_area);
-            fit_area.x = area.x + area.w;
-            if area.y + area.h > max_y {
-                max_y = area.y + area.h;
+            fit_area.0.x = area.1.x;
+            if area.1.y > max_y {
+                max_y = area.1.y;
             }
         }
 

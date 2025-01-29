@@ -1,11 +1,11 @@
-use super::{bindings::*, vertex::Vertex};
+use super::{bindings::*, vertex::Vertex, Frame};
 use wgpu::util::DeviceExt;
 use wgpu::*;
 use winit::{dpi::PhysicalSize, window::Window};
 
 pub struct Renderer<'a> {
     // winit trackers
-    size: winit::dpi::PhysicalSize<u32>,
+    pub size: winit::dpi::PhysicalSize<u32>,
     window: &'a Window,
 
     // core wgpu
@@ -88,7 +88,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    pub fn render(&mut self, vertices: Vec<Vertex>) -> Result<(), SurfaceError> {
+    pub fn render(&mut self, frame: Frame) -> Result<(), SurfaceError> {
         // Get the current texture to render to
         let output = self.surface.get_current_texture()?;
 
@@ -112,12 +112,12 @@ impl<'a> Renderer<'a> {
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("Vertex Buffer"),
-                    contents: bytemuck::cast_slice(&vertices.as_slice()),
+                    contents: bytemuck::cast_slice(&frame.vertices.as_slice()),
                     usage: BufferUsages::VERTEX,
                 });
 
             render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-            render_pass.draw(0..(vertices.len() as u32), 0..1);
+            render_pass.draw(0..(frame.vertices.len() as u32), 0..1);
         }
 
         // Send the commands to the GPU and show the output

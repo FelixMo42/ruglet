@@ -1,34 +1,28 @@
+mod layout;
 mod ruglet;
 
+use layout::*;
 use ruglet::*;
 
-struct MyApp {}
+struct MyApp {
+    root: Div,
+}
 
 impl MyApp {
     fn new() -> Self {
-        return MyApp {};
+        return MyApp {
+            root: Div::new().pad(50.).bg([1., 1., 1.]).children(vec![
+                Div::new().size(200.0, 200.0).bg([0.0, 0.5, 0.5]),
+                Div::new().size(150.0, 150.0).bg([0.5, 0.5, 0.0]),
+                Div::new().size(300.0, 300.0).bg([0.5, 0.0, 0.5]),
+            ]),
+        };
     }
 }
 
 impl Application for MyApp {
-    fn on_draw(&self) -> Vec<Vertex> {
-        return vec![
-            Vertex {
-                position: [100., 100., 0.0],
-                tex_coords: [0., 0.],
-                color: [0.0, 0.5, 0.5],
-            },
-            Vertex {
-                position: [100., 200.0, 0.0],
-                tex_coords: [0.0868241, 0.00759614],
-                color: [0.5, 0.0, 0.5],
-            },
-            Vertex {
-                position: [200.0, 200.0, 0.0],
-                tex_coords: [0.5868241, 0.99240386],
-                color: [0.5, 0.0, 0.5],
-            },
-        ];
+    fn on_draw(&self, frame: &mut Frame) {
+        self.root.render(frame, &frame.area.clone());
     }
 }
 

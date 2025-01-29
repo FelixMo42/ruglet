@@ -1,9 +1,8 @@
+use super::{renderer::Renderer, Frame};
 use winit::{error::EventLoopError, event::*, event_loop::EventLoop, window::WindowBuilder};
 
-use super::{renderer::Renderer, Vertex};
-
 pub trait Application {
-    fn on_draw(&self) -> Vec<Vertex>;
+    fn on_draw(&self, frame: &mut Frame);
 
     async fn run(&self) -> Result<(), EventLoopError> {
         // Initialize the window and event handler
@@ -23,7 +22,11 @@ pub trait Application {
             } if window_id == renderer.window().id() => match event {
                 CloseRequested => control_flow.exit(),
                 Resized(physical_size) => renderer.resize(*physical_size),
-                RedrawRequested => renderer.render(self.on_draw()).unwrap(),
+                RedrawRequested => {
+                    let mut frame = Frame::new(renderer.size);
+                    self.on_draw(&mut frame);
+                    renderer.render(frame).unwrap();
+                }
                 _ => {}
             },
             _ => {}
