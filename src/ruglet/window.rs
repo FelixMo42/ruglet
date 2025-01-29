@@ -52,7 +52,11 @@ impl Renderer {
         return self;
     }
 
-    pub fn draw(&mut self, sprite: &Sprite) {
+    pub fn tri(&mut self, vert: Vertex) {
+        self.vertices.push(vert);
+    }
+
+    pub fn quad(&mut self, sprite: &Sprite) {
         self.vertices.push(Vertex {
             position: pos((sprite.x, sprite.y)),
             tex_coords: [0.0, 0.0],
