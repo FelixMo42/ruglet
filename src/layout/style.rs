@@ -2,6 +2,7 @@ pub struct Style {
     pub width: Option<f32>,
     pub height: Option<f32>,
     pub padding: Option<f32>,
+    pub bg: Option<[f32; 3]>,
 }
 
 impl Style {
@@ -10,6 +11,7 @@ impl Style {
             width: None,
             height: None,
             padding: None,
+            bg: None,
         };
     }
 
@@ -22,6 +24,12 @@ impl Style {
 
     pub fn pad(mut self, padding: f32) -> Self {
         self.padding = Some(padding);
+
+        return self;
+    }
+
+    pub fn bg(mut self, color: [f32; 3]) -> Self {
+        self.bg = Some(color);
 
         return self;
     }

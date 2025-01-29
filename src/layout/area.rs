@@ -1,3 +1,5 @@
+use crate::ruglet::prelude::*;
+
 pub struct Area {
     pub x: f32,
     pub y: f32,
@@ -12,6 +14,15 @@ impl Area {
             y: self.y + padding,
             w: self.w - padding * 2.,
             h: self.h - padding * 2.,
+        };
+    }
+
+    pub fn resize(&self, size: Vec2) -> Area {
+        return Area {
+            x: self.x,
+            y: self.y,
+            w: size.x,
+            h: size.y,
         };
     }
 }

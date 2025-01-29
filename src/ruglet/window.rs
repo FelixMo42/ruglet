@@ -1,3 +1,4 @@
+pub use crate::layout::prelude::*;
 pub use crate::ruglet::state::State;
 pub use crate::ruglet::vertices::Vertex;
 
@@ -29,6 +30,16 @@ impl Sprite {
             w,
             h,
             color: [1.0, 1.0, 1.0],
+        };
+    }
+
+    pub fn new_with_color(area: &Area, color: [f32; 3]) -> Sprite {
+        return Sprite {
+            x: area.x,
+            y: area.y,
+            w: area.x + area.w,
+            h: area.y + area.h,
+            color,
         };
     }
 }
