@@ -63,19 +63,25 @@ impl Div {
             child_area = child_area.pad(padding);
         }
 
+        let mut fit_area = child_area.clone();
+        let mut max_y = fit_area.y;
+
         // Draw children
         for child in &self.children {
-            let size = child.calc_size(&child_area);
+            let size = child.calc_size(&fit_area);
 
             // Wrap
-            if child_area.x + size.x > my_area.x + my_area.w {
-                child_area.x = my_area.x + self.style.padding.unwrap_or(0.0);
-                child_area.y += 100.0;
+            if fit_area.x + size.x > child_area.x + child_area.w {
+                fit_area.x = child_area.x;
+                fit_area.y = max_y;
             }
 
-            // Blah
-            let area = child.render(renderer, &child_area);
-            child_area.x = area.x + area.w;
+            // Draw the child
+            let area = child.render(renderer, &fit_area);
+            fit_area.x = area.x + area.w;
+            if area.y + area.h > max_y {
+                max_y = area.y + area.h;
+            }
         }
 
         // Return my area so that my parents knows where I am.
