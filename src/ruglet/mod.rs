@@ -1,8 +1,8 @@
-pub mod state;
-pub mod texture;
-pub mod vertices;
-pub mod window;
+mod application;
+mod bindings;
+mod renderer;
+mod vertex;
 
-pub mod prelude {
-    pub use super::window::*;
-}
+// Publish all
+pub use application::*;
+pub use vertex::*;

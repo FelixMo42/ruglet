@@ -1,60 +1,41 @@
-pub mod layout;
-pub mod ruglet;
+mod ruglet;
 
-use layout::prelude::*;
-use ruglet::prelude::*;
+use ruglet::*;
 
-struct TestApp {
-    mouse: Vec2,
-    size: Vec2,
-    root: Div,
-}
+struct MyApp {}
 
-impl TestApp {
-    fn new() -> TestApp {
-        return TestApp {
-            size: Vec2 { x: 0.0, y: 0.0 },
-            mouse: Vec2 { x: 0.0, y: 0.0 },
-            root: Div::new().pad(50.).bg([1., 1., 1.]).children(vec![
-                Div::new().size(200.0, 200.0).bg([0.0, 0.5, 0.5]),
-                Div::new().size(150.0, 150.0).bg([0.5, 0.5, 0.]),
-            ]),
-        };
+impl MyApp {
+    fn new() -> Self {
+        return MyApp {};
     }
 }
 
-impl Window for TestApp {
-    fn on_resize(&mut self, (w, h): (f32, f32)) {
-        self.size.x = w;
-        self.size.y = h;
-    }
-
-    fn on_mouse_moved(&mut self, (x, y): (f32, f32)) {
-        self.mouse.x = x;
-        self.mouse.y = y;
-    }
-
-    fn on_mouse_down(&mut self, _button: winit::event::MouseButton) {
-        // self.quads.push(Sprite::new(
-        //     self.mouse.x - 100.0,
-        //     self.mouse.y - 100.0,
-        //     self.mouse.x + 100.0,
-        //     self.mouse.y + 100.0,
-        // ))
-    }
-
-    fn on_draw(&self, renderer: &mut Renderer) {
-        let area = Area {
-            x: 0.0,
-            y: 0.0,
-            w: self.size.x,
-            h: self.size.y,
-        };
-
-        self.root.render(renderer, &area);
+impl Application for MyApp {
+    fn on_draw(&self) -> Vec<Vertex> {
+        return vec![
+            Vertex {
+                position: [100., 100., 0.0],
+                tex_coords: [0., 0.],
+                color: [0.0, 0.5, 0.5],
+            },
+            Vertex {
+                position: [100., 200.0, 0.0],
+                tex_coords: [0.0868241, 0.00759614],
+                color: [0.5, 0.0, 0.5],
+            },
+            Vertex {
+                position: [200.0, 200.0, 0.0],
+                tex_coords: [0.5868241, 0.99240386],
+                color: [0.5, 0.0, 0.5],
+            },
+        ];
     }
 }
 
 fn main() {
-    pollster::block_on(run(TestApp::new()));
+    let app = MyApp::new();
+
+    if let Err(e) = pollster::block_on(app.run()) {
+        eprintln!("Error: {:?}", e);
+    }
 }
