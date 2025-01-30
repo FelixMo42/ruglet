@@ -30,26 +30,7 @@ impl Area {
         return self.1.y - self.0.y;
     }
 
-    pub fn pad(&self, padding: f32) -> Area {
-        return Area(
-            Vec2 {
-                x: self.0.x + padding,
-                y: self.0.y + padding,
-            },
-            Vec2 {
-                x: self.1.x - padding,
-                y: self.1.y - padding,
-            },
-        );
-    }
-
-    pub fn resize(&self, size: Vec2) -> Area {
-        return Area(
-            self.0,
-            Vec2 {
-                x: self.0.x + size.x,
-                y: self.0.y + size.y,
-            },
-        );
+    pub fn size(&self) -> Vec2 {
+        return Vec2::new(self.w(), self.h());
     }
 }

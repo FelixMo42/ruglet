@@ -32,6 +32,16 @@ impl FontAtlas {
         };
     }
 
+    pub fn size(&mut self, chr: char, px: f32) -> Vec2 {
+        let tex = self.get(chr, px);
+        let metrics = self.metrics[tex];
+
+        return Vec2 {
+            x: metrics.advance_width,
+            y: px,
+        };
+    }
+
     pub fn metrics(&self, glyphsi: usize) -> Metrics {
         return self.metrics[glyphsi];
     }

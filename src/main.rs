@@ -4,54 +4,39 @@ mod ruglet;
 use layout::*;
 use ruglet::*;
 
-struct MyApp {
-    root: Div,
+struct MyApp<'a> {
+    tree: Tree<'a>,
+    root: usize,
     font: FontAtlas,
 }
 
-impl MyApp {
-    fn new(text: &str) -> Self {
-        let mut font = FontAtlas::new();
+impl<'a> MyApp<'a> {
+    fn new(text: &'a str) -> Self {
+        let font = FontAtlas::new();
+        let mut tree = Tree::new();
 
-        let divs: Vec<Div> = text
-            .chars()
-            .map(|c| {
-                let texture = font.get(c, 200.0);
-                let metrics = font.metrics(texture);
-
-                let baseline = 175.0;
-                let hoffset = baseline - (metrics.ymin as f32) - metrics.height as f32;
-
-                Div::new()
-                    .size(metrics.advance_width, 200.0)
-                    .children(vec![Div::new()
-                        .size(metrics.width as f32, metrics.height as f32)
-                        .bg([0.0, 0.5, 0.5])
-                        .offset(Vec2::new(metrics.xmin as f32, hoffset))
-                        .texture(texture)])
-            })
+        let paragraphs = text
+            .lines()
+            .map(|line| tree.add(NodeKind::Text(line), vec![]))
             .collect();
 
-        let root = Div::new().pad(50.).bg([1., 1., 1.]).children(divs);
+        let pad = tree.add(NodeKind::Pad(50.0), paragraphs);
 
-        return MyApp { root, font };
+        let root = tree.add(NodeKind::Scroll, vec![pad]);
+
+        return MyApp { tree, root, font };
     }
 }
 
-impl Application for MyApp {
+impl<'a> Application for MyApp<'a> {
     fn on_draw(&mut self, frame: &mut Frame) {
-        // Update the texture if new glyphs have been added to the font atlas
-        if self.font.texture_changed() {
-            frame.set_texture(self.font.build_texture());
-        }
-
         // Render the dom
-        self.root.render(frame, &frame.area.clone(), &self.font);
+        self.tree.build(self.root, frame, &mut self.font);
     }
 }
 
 fn main() {
-    let text = "Ruglet is cool!";
+    let text = include_str!("../res/test.txt");
 
     let mut app = MyApp::new(text);
 
