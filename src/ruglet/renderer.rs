@@ -1,4 +1,4 @@
-use super::{bindings::*, vertex::Vertex, Frame};
+use super::{bindings::*, texture::create_texture, vertex::Vertex, Frame};
 use wgpu::util::DeviceExt;
 use wgpu::*;
 use winit::{dpi::PhysicalSize, window::Window};
@@ -6,17 +6,17 @@ use winit::{dpi::PhysicalSize, window::Window};
 pub struct Renderer<'a> {
     // winit trackers
     pub size: winit::dpi::PhysicalSize<u32>,
-    window: &'a Window,
+    pub window: &'a Window,
 
     // core wgpu
-    surface: Surface<'a>,
-    device: Device,
-    queue: Queue,
-    config: SurfaceConfiguration,
-    render_pipeline: RenderPipeline,
+    pub surface: Surface<'a>,
+    pub device: Device,
+    pub queue: Queue,
+    pub config: SurfaceConfiguration,
+    pub render_pipeline: RenderPipeline,
 
     // wgpu utils
-    bindings: Bindings,
+    pub bindings: Bindings,
 }
 
 impl<'a> Renderer<'a> {
@@ -48,7 +48,7 @@ impl<'a> Renderer<'a> {
         let config = create_surface_config(&surface, &adapter, size);
 
         // Get the bindgroups for the shader
-        let bindings = create_bindings(&device);
+        let bindings = create_bindings(&device, &queue);
 
         // Create the shader + it's render pipeline
         // If you edit the shader, you need to update this function
@@ -104,8 +104,22 @@ impl<'a> Renderer<'a> {
             // Add the shader
             render_pass.set_pipeline(&self.render_pipeline);
 
+            if frame.texture_changed {
+                update_texture_bindgroup(
+                    &self.device,
+                    &mut self.bindings,
+                    create_texture(
+                        &self.device,
+                        &self.queue,
+                        &frame.texture_bytes,
+                        frame.texture_dimensions,
+                    ),
+                );
+            }
+
             // Set the bind groups
             render_pass.set_bind_group(0, &self.bindings[0].group, &[]);
+            render_pass.set_bind_group(1, &self.bindings[1].group, &[]);
 
             // Draw the vertices
             let vertex_buffer = self
@@ -205,7 +219,7 @@ fn create_render_pipeline(
             entry_point: Some("fs_main"),
             targets: &[Some(ColorTargetState {
                 format: config.format,
-                blend: Some(BlendState::REPLACE),
+                blend: Some(BlendState::ALPHA_BLENDING),
                 write_mask: ColorWrites::ALL,
             })],
             compilation_options: PipelineCompilationOptions::default(),

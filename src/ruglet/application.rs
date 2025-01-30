@@ -1,5 +1,5 @@
 use super::{renderer::Renderer, Frame};
-use winit::{error::EventLoopError, event::*, event_loop::EventLoop, window::WindowBuilder};
+use winit::{error::EventLoopError, event::*, event_loop::*, window::WindowBuilder};
 
 pub trait Application {
     fn on_draw(&self, frame: &mut Frame);
@@ -12,6 +12,9 @@ pub trait Application {
         // Manage our wgpu stuff
         let mut renderer = Renderer::new(&window).await;
         renderer.resize(window.inner_size());
+
+        // Don't update if we don't have to
+        event_loop.set_control_flow(ControlFlow::Wait);
 
         // Handle events as they come in
         use WindowEvent::*;

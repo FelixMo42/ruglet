@@ -3,6 +3,7 @@ mod area;
 mod bindings;
 mod frame;
 mod renderer;
+mod texture;
 mod vertex;
 
 // Publish all

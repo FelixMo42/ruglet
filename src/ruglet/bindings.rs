@@ -2,20 +2,22 @@ use wgpu::util::DeviceExt;
 use wgpu::*;
 use winit::dpi::PhysicalSize;
 
+use super::texture::{create_texture, Texture};
+
 pub struct Binding {
     pub layout: BindGroupLayout,
     pub group: BindGroup,
 }
 
 const SCREEN_SIZE_BIND_GROUP: usize = 0;
-// const TEXTURE_BIND_GROUP: usize = 1;
+const TEXTURE_BIND_GROUP: usize = 1;
 
-pub type Bindings = [Binding; 1];
+pub type Bindings = [Binding; 2];
 
-pub fn create_bindings(device: &Device) -> Bindings {
+pub fn create_bindings(device: &Device, queue: &Queue) -> Bindings {
     return [
         create_screen_size_bindgroup(device),
-        // create_texture_bindgroup(device, queue),
+        create_texture_bindgroup(device, queue),
     ];
 }
 
@@ -40,46 +42,69 @@ pub fn update_screen_size_bindgroup(
     });
 }
 
-// fn create_texture_bindgroup(device: &Device, queue: &Queue) -> Binding {
-//     let layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-//         label: Some("texture_bind_group_layout"),
-//         entries: &[
-//             BindGroupLayoutEntry {
-//                 binding: 0,
-//                 visibility: ShaderStages::FRAGMENT,
-//                 ty: BindingType::Texture {
-//                     multisampled: false,
-//                     view_dimension: TextureViewDimension::D2,
-//                     sample_type: TextureSampleType::Float { filterable: true },
-//                 },
-//                 count: NonZeroU32::new(1),
-//             },
-//             BindGroupLayoutEntry {
-//                 binding: 1,
-//                 visibility: ShaderStages::FRAGMENT,
-//                 ty: BindingType::Sampler(SamplerBindingType::Filtering),
-//                 count: NonZeroU32::new(1),
-//             },
-//         ],
-//     });
-//     return Binding {
-//         group: device.create_bind_group(&BindGroupDescriptor {
-//             label: Some("texture_bind_group"),
-//             layout: &layout,
-//             entries: &[
-//                 BindGroupEntry {
-//                     binding: 0,
-//                     resource: BindingResource::TextureViewArray(&[&texture.view]),
-//                 },
-//                 BindGroupEntry {
-//                     binding: 1,
-//                     resource: BindingResource::SamplerArray(&[&texture.sampler]),
-//                 },
-//             ],
-//         }),
-//         layout,
-//     };
-// }
+pub fn update_texture_bindgroup(device: &Device, bindings: &mut Bindings, texture: Texture) {
+    bindings[TEXTURE_BIND_GROUP].group = device.create_bind_group(&BindGroupDescriptor {
+        label: Some("texture_bind_group"),
+        layout: &bindings[TEXTURE_BIND_GROUP].layout,
+        entries: &[
+            BindGroupEntry {
+                binding: 0,
+                resource: BindingResource::TextureView(&texture.view),
+            },
+            BindGroupEntry {
+                binding: 1,
+                resource: BindingResource::Sampler(&texture.sampler),
+            },
+        ],
+    })
+}
+
+pub fn create_texture_bindgroup(device: &Device, queue: &Queue) -> Binding {
+    // Create blank 1x1px texture
+    let texture = create_texture(device, queue, &[u8::max_value(); 4], (1, 1));
+
+    let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                // This should match the filterable field of the
+                // corresponding Texture entry above.
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+        label: Some("texture_bind_group_layout"),
+    });
+
+    return Binding {
+        group: device.create_bind_group(&BindGroupDescriptor {
+            label: Some("texture_bind_group"),
+            layout: &layout,
+            entries: &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::TextureView(&texture.view),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: BindingResource::Sampler(&texture.sampler),
+                },
+            ],
+        }),
+        layout,
+    };
+}
 
 fn create_screen_size_bindgroup(device: &Device) -> Binding {
     let screen_size = ScreenSizeUniform {
