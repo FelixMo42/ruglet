@@ -54,13 +54,17 @@ impl Div {
         return Vec2 { x: w, y: h };
     }
 
-    pub fn render(&self, renderer: &mut Frame, area: &Area) -> Area {
+    pub fn render(&self, renderer: &mut Frame, area: &Area, atlas: &FontAtlas) -> Area {
         // How big am I?
         let my_area = area.resize(self.calc_size(area));
 
         // Draw a background if needed
         if let Some(color) = self.style.bg {
-            renderer.quad(my_area, color);
+            if let Some(tex) = self.style.texture {
+                renderer.quad(my_area, atlas.texture_area(tex), color);
+            } else {
+                renderer.quad(my_area, Area(Vec2::new(0., 0.), Vec2::new(0., 0.)), color);
+            }
         }
 
         // Calculare the total amount area for my children
@@ -83,7 +87,7 @@ impl Div {
             }
 
             // Draw the child
-            let area = child.render(renderer, &fit_area);
+            let area = child.render(renderer, &fit_area, atlas);
             fit_area.0.x = area.1.x;
             if area.1.y > max_y {
                 max_y = area.1.y;

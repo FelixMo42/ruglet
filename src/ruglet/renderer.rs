@@ -1,9 +1,4 @@
-use super::{
-    bindings::*,
-    texture::{create_texture, TextureData},
-    vertex::Vertex,
-    Frame,
-};
+use super::{bindings::*, texture::create_texture, vertex::Vertex, Frame};
 use wgpu::util::DeviceExt;
 use wgpu::*;
 use winit::{dpi::PhysicalSize, window::Window};
