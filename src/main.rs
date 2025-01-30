@@ -10,35 +10,29 @@ struct MyApp {
 }
 
 impl MyApp {
-    fn new() -> Self {
+    fn new(text: &str) -> Self {
         let mut font = FontAtlas::new();
 
-        let root = Div::new().pad(50.).bg([1., 1., 1.]).children(vec![
-            Div::new()
-                .size(200.0, 200.0)
-                .bg([0.0, 0.5, 0.5])
-                .texture(font.get('R', 20.0)),
-            Div::new()
-                .size(200.0, 200.0)
-                .bg([0.5, 0.5, 0.0])
-                .texture(font.get('u', 20.0)),
-            Div::new()
-                .size(200.0, 200.0)
-                .bg([0.5, 0.0, 0.5])
-                .texture(font.get('g', 20.0)),
-            Div::new()
-                .size(200.0, 200.0)
-                .bg([0.0, 0.0, 0.5])
-                .texture(font.get('l', 20.0)),
-            Div::new()
-                .size(200.0, 200.0)
-                .bg([0.0, 0.5, 0.0])
-                .texture(font.get('e', 20.0)),
-            Div::new()
-                .size(200.0, 200.0)
-                .bg([0.0, 0.5, 0.0])
-                .texture(font.get('t', 20.0)),
-        ]);
+        let divs: Vec<Div> = text
+            .chars()
+            .map(|c| {
+                let texture = font.get(c, 200.0);
+                let metrics = font.metrics(texture);
+
+                let baseline = 175.0;
+                let hoffset = baseline - (metrics.ymin as f32) - metrics.height as f32;
+
+                Div::new()
+                    .size(metrics.advance_width, 200.0)
+                    .children(vec![Div::new()
+                        .size(metrics.width as f32, metrics.height as f32)
+                        .bg([0.0, 0.5, 0.5])
+                        .offset(Vec2::new(metrics.xmin as f32, hoffset))
+                        .texture(texture)])
+            })
+            .collect();
+
+        let root = Div::new().pad(50.).bg([1., 1., 1.]).children(divs);
 
         return MyApp { root, font };
     }
@@ -57,7 +51,9 @@ impl Application for MyApp {
 }
 
 fn main() {
-    let mut app = MyApp::new();
+    let text = "Ruglet is cool!";
+
+    let mut app = MyApp::new(text);
 
     if let Err(e) = pollster::block_on(app.run()) {
         eprintln!("Error: {:?}", e);

@@ -32,6 +32,10 @@ impl FontAtlas {
         };
     }
 
+    pub fn metrics(&self, glyphsi: usize) -> Metrics {
+        return self.metrics[glyphsi];
+    }
+
     pub fn get(&mut self, chr: char, px: f32) -> usize {
         // Check if we already have this character
         for (c, p, i) in &self.glyphsi {
@@ -62,8 +66,6 @@ impl FontAtlas {
             Vec2::new(area.0.x / self.dimensions.0, area.0.y / self.dimensions.1),
             Vec2::new(area.1.x / self.dimensions.0, area.1.y / self.dimensions.1),
         );
-
-        // self.texarea[glyphsi];
     }
 
     pub fn build_texture(&mut self) -> TextureData {
@@ -78,7 +80,7 @@ impl FontAtlas {
 
         // What if it dosen't fit?
         // How could we select the size more intelligently?
-        let dimensions = (64u32, 64u32);
+        let dimensions = (1024u32, 1024u32);
         self.dimensions = (dimensions.0 as f32, dimensions.1 as f32);
 
         // Figure out the position of all the glpyhs

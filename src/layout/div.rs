@@ -44,6 +44,12 @@ impl Div {
 
         return self;
     }
+
+    pub fn offset(mut self, offset: Vec2) -> Self {
+        self.style.offset = Some(offset);
+
+        return self;
+    }
 }
 
 impl Div {
@@ -56,14 +62,21 @@ impl Div {
 
     pub fn render(&self, renderer: &mut Frame, area: &Area, atlas: &FontAtlas) -> Area {
         // How big am I?
-        let my_area = area.resize(self.calc_size(area));
+        let mut my_area = area.resize(self.calc_size(area));
+
+        if let Some(offset) = self.style.offset {
+            my_area.0.x += offset.x;
+            my_area.0.y += offset.y;
+            my_area.1.x += offset.x;
+            my_area.1.y += offset.y;
+        }
 
         // Draw a background if needed
         if let Some(color) = self.style.bg {
             if let Some(tex) = self.style.texture {
                 renderer.quad(my_area, atlas.texture_area(tex), color);
             } else {
-                renderer.quad(my_area, Area(Vec2::new(0., 0.), Vec2::new(0., 0.)), color);
+                renderer.quad(my_area, Area(Vec2::new(2., 2.), Vec2::new(2., 2.)), color);
             }
         }
 
