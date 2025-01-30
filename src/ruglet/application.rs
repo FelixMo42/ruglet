@@ -2,9 +2,9 @@ use super::{renderer::Renderer, Frame};
 use winit::{error::EventLoopError, event::*, event_loop::*, window::WindowBuilder};
 
 pub trait Application {
-    fn on_draw(&self, frame: &mut Frame);
+    fn on_draw(&mut self, frame: &mut Frame);
 
-    async fn run(&self) -> Result<(), EventLoopError> {
+    async fn run(&mut self) -> Result<(), EventLoopError> {
         // Initialize the window and event handler
         let event_loop = EventLoop::new().unwrap();
         let window = WindowBuilder::new().build(&event_loop).unwrap();

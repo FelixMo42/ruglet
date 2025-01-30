@@ -2,7 +2,7 @@ use wgpu::util::DeviceExt;
 use wgpu::*;
 use winit::dpi::PhysicalSize;
 
-use super::texture::{create_texture, Texture};
+use super::texture::{create_texture, Texture, TextureData};
 
 pub struct Binding {
     pub layout: BindGroupLayout,
@@ -61,7 +61,7 @@ pub fn update_texture_bindgroup(device: &Device, bindings: &mut Bindings, textur
 
 pub fn create_texture_bindgroup(device: &Device, queue: &Queue) -> Binding {
     // Create blank 1x1px texture
-    let texture = create_texture(device, queue, &[u8::max_value(); 4], (1, 1));
+    let texture = create_texture(device, queue, TextureData::blank());
 
     let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         entries: &[

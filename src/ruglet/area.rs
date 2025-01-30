@@ -18,6 +18,10 @@ impl Vec2 {
 pub struct Area(pub Vec2, pub Vec2);
 
 impl Area {
+    pub fn zero() -> Area {
+        return Area(Vec2::zero(), Vec2::zero());
+    }
+
     pub fn w(&self) -> f32 {
         return self.1.x - self.0.x;
     }

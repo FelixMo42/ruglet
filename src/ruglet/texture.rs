@@ -1,19 +1,32 @@
 use wgpu::*;
 
+pub struct TextureData {
+    pub bytes: Vec<u8>,
+    pub dimensions: (u32, u32),
+}
+
+impl TextureData {
+    pub fn new(bytes: Vec<u8>, dimensions: (u32, u32)) -> Self {
+        return TextureData { bytes, dimensions };
+    }
+
+    pub fn blank() -> Self {
+        return TextureData {
+            bytes: vec![0xff; 4],
+            dimensions: (1, 1),
+        };
+    }
+}
+
 pub struct Texture {
     pub view: TextureView,
     pub sampler: Sampler,
 }
 
-pub fn create_texture(
-    device: &Device,
-    queue: &Queue,
-    bytes: &[u8],
-    dimensions: (u32, u32),
-) -> Texture {
+pub fn create_texture(device: &Device, queue: &Queue, data: TextureData) -> Texture {
     let texture_size = Extent3d {
-        width: dimensions.0,
-        height: dimensions.1,
+        width: data.dimensions.0,
+        height: data.dimensions.1,
         // All textures are stored as 3D, we represent our 2D texture
         // by setting depth to 1.
         depth_or_array_layers: 1,
@@ -52,12 +65,12 @@ pub fn create_texture(
             aspect: TextureAspect::All,
         },
         // The actual pixel data
-        &bytes,
+        &data.bytes,
         // The layout of the texture
         TexelCopyBufferLayout {
             offset: 0,
-            bytes_per_row: Some(4 * dimensions.0),
-            rows_per_image: Some(dimensions.1),
+            bytes_per_row: Some(4 * data.dimensions.0),
+            rows_per_image: Some(data.dimensions.1),
         },
         texture_size,
     );

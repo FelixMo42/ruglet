@@ -14,6 +14,12 @@ impl Div {
         };
     }
 
+    pub fn texture(mut self, texture: usize) -> Self {
+        self.style.texture = Some(texture);
+
+        return self;
+    }
+
     pub fn children(mut self, children: Vec<Div>) -> Self {
         self.children = children;
 

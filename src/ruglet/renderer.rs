@@ -1,4 +1,9 @@
-use super::{bindings::*, texture::create_texture, vertex::Vertex, Frame};
+use super::{
+    bindings::*,
+    texture::{create_texture, TextureData},
+    vertex::Vertex,
+    Frame,
+};
 use wgpu::util::DeviceExt;
 use wgpu::*;
 use winit::{dpi::PhysicalSize, window::Window};
@@ -108,12 +113,7 @@ impl<'a> Renderer<'a> {
                 update_texture_bindgroup(
                     &self.device,
                     &mut self.bindings,
-                    create_texture(
-                        &self.device,
-                        &self.queue,
-                        &frame.texture_bytes,
-                        frame.texture_dimensions,
-                    ),
+                    create_texture(&self.device, &self.queue, frame.texture),
                 );
             }
 

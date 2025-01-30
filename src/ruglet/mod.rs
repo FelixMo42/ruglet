@@ -10,4 +10,5 @@ mod vertex;
 pub use application::*;
 pub use area::*;
 pub use frame::*;
+pub use texture::*;
 pub use vertex::*;

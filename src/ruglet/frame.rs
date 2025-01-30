@@ -2,12 +2,13 @@ use winit::dpi::PhysicalSize;
 
 use crate::ruglet::*;
 
+use super::texture::TextureData;
+
 pub struct Frame {
     pub area: Area,
     pub vertices: Vec<Vertex>,
 
-    pub texture_bytes: Vec<u8>,
-    pub texture_dimensions: (u32, u32),
+    pub texture: TextureData,
     pub texture_changed: bool,
 }
 
@@ -24,8 +25,7 @@ impl Frame {
             ),
 
             // Default to 1x1px white texture
-            texture_bytes: vec![u8::MAX; 4],
-            texture_dimensions: (1, 1),
+            texture: TextureData::blank(),
             texture_changed: false,
         };
     }
@@ -64,9 +64,8 @@ impl Frame {
         });
     }
 
-    pub fn set_texture(&mut self, bytes: Vec<u8>, dimensions: (u32, u32)) {
-        self.texture_bytes = bytes;
-        self.texture_dimensions = dimensions;
+    pub fn set_texture(&mut self, texture: TextureData) {
+        self.texture = texture;
         self.texture_changed = true;
     }
 }

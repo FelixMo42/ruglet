@@ -3,6 +3,7 @@ pub struct Style {
     pub height: Option<f32>,
     pub padding: Option<f32>,
     pub bg: Option<[f32; 3]>,
+    pub texture: Option<usize>,
 }
 
 impl Style {
@@ -12,6 +13,7 @@ impl Style {
             height: None,
             padding: None,
             bg: None,
+            texture: None,
         };
     }
 }
