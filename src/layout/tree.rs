@@ -4,6 +4,7 @@ use super::FontAtlas;
 
 const PX: f32 = 60.;
 const LH: f32 = 80.;
+const WS: f32 = 30.;
 
 //////////
 // NODE //
@@ -83,27 +84,35 @@ impl<'a> Tree<'a> {
                     let mut x = node.area.0.x;
                     let mut y = node.area.0.y;
 
-                    for c in text.chars() {
-                        let texture = atlas.get(c, PX);
-                        let metrics = atlas.metrics(texture);
-
-                        if x + metrics.advance_width > node.area.1.x {
+                    for word in text.split_whitespace() {
+                        let w: f32 = word.chars().map(|c| atlas.size(c, PX).x).sum();
+                        if x + w + WS > node.area.1.x {
                             x = node.area.0.x;
                             y += LH;
                         }
 
-                        let gx = x + metrics.xmin as f32;
-                        let gy = y + LH - metrics.ymin as f32 - metrics.height as f32;
-                        frame.quad(
-                            Area(
-                                Vec2::new(gx, gy),
-                                Vec2::new(gx + metrics.width as f32, gy + metrics.height as f32),
-                            ),
-                            atlas.texture_area(texture),
-                            [1., 1., 1.],
-                        );
+                        for c in word.chars() {
+                            let texture = atlas.get(c, PX);
+                            let metrics = atlas.metrics(texture);
 
-                        x += metrics.advance_width;
+                            let gx = x + metrics.xmin as f32;
+                            let gy = y + LH - metrics.ymin as f32 - metrics.height as f32;
+                            frame.quad(
+                                Area(
+                                    Vec2::new(gx, gy),
+                                    Vec2::new(
+                                        gx + metrics.width as f32,
+                                        gy + metrics.height as f32,
+                                    ),
+                                ),
+                                atlas.texture_area(texture),
+                                [1., 1., 1.],
+                            );
+
+                            x += metrics.advance_width;
+                        }
+
+                        x += WS;
                     }
                 }
                 _ => {}
@@ -164,21 +173,21 @@ impl<'a> Tree<'a> {
                 return area.size();
             }
             NodeKind::Text(text) => {
-                let w = area.w();
                 let mut h = LH;
 
                 let mut row = 0.;
-                for c in text.chars() {
-                    let size = atlas.size(c, PX);
-                    if area.0.x + row + size.x > area.1.x {
+                for word in text.split_whitespace() {
+                    let w = word.chars().map(|c| atlas.size(c, PX).x).sum();
+
+                    if area.0.x + row + w + WS > area.1.x {
                         h += LH;
-                        row = size.x;
+                        row = w;
                     } else {
-                        row += size.x;
+                        row += w + WS;
                     }
                 }
 
-                return Vec2::new(w, h);
+                return Vec2::new(area.w(), h);
             }
         }
     }
