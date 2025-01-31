@@ -53,8 +53,10 @@ pub trait Application {
                 MouseInput { state, button, .. } => {
                     if *state == ElementState::Released {
                         self.on_press(mouse, *button);
+                        renderer.window().request_redraw();
                     }
                 }
+
                 MouseWheel { delta, .. } => match delta {
                     MouseScrollDelta::PixelDelta(pos) => {
                         self.on_mouse_scroll(pos.x as f32, pos.y as f32);

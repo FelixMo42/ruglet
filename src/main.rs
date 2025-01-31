@@ -21,15 +21,6 @@ impl<'a> MyApp<'a> {
         let font = FontAtlas::new();
         let mut tree = Tree::new();
 
-        // let paragraphs = text
-        //     .lines()
-        //     .map(|line| tree.add(NodeKind::Text(line), vec![]))
-        //     .collect();
-
-        // let pad = tree.add(NodeKind::Pad(50.0), paragraphs);
-
-        // let root = tree.add(NodeKind::Scroll(0.0), vec![pad]);
-
         let paragraphs = options
             .iter()
             .enumerate()
@@ -59,7 +50,11 @@ impl<'a> MyApp<'a> {
 impl<'a> Application for MyApp<'a> {
     fn on_press(&mut self, mouse: Vec2, _button: MouseButton) {
         let click = self.tree.click(self.root, mouse);
-        println!("{:?}", click);
+
+        if click.is_some() {
+            let bla = self.tree.add(NodeKind::Text("CLICKED!"), vec![]);
+            self.tree.replace(self.root, bla);
+        }
     }
 
     fn on_mouse_scroll(&mut self, _dx: f32, dy: f32) {

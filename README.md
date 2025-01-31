@@ -4,7 +4,10 @@ I <3 rust, and wanted a playground for rendering technologies.
 
 ## Roadmap
 
-- Update the dom
+- [ ] Better state handling
+- [ ] Backgrounds
+- [ ] Rounded rectagles
+- [ ] Lines
 
 ## Known bugs
 

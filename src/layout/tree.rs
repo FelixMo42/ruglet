@@ -10,14 +10,16 @@ const WS: f32 = 30.;
 // NODE //
 //////////
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NodeKind<'a> {
+    None,
     Text(&'a str),
     Pad(f32),
     Scroll(f32),
     Clickable(usize),
 }
 
+#[derive(Clone)]
 struct Node<'a> {
     kind: NodeKind<'a>,
     child: usize,
@@ -33,6 +35,7 @@ pub struct Tree<'a> {
     nodes: Vec<Node<'a>>,
 }
 
+// Build function
 impl<'a> Tree<'a> {
     pub fn new() -> Self {
         return Tree { nodes: vec![] };
@@ -67,6 +70,26 @@ impl<'a> Tree<'a> {
         self.nodes[node].kind = kind
     }
 
+    pub fn replace(&mut self, a: usize, b: usize) {
+        self.delete(a);
+        self.nodes[a] = self.nodes[b].clone();
+    }
+
+    fn delete(&mut self, node: usize) {
+        self.nodes[node].kind = NodeKind::None;
+
+        if self.nodes[node].child != usize::MAX {
+            self.delete(self.nodes[node].child);
+        }
+
+        if self.nodes[node].next != usize::MAX {
+            self.delete(self.nodes[node].next);
+        }
+    }
+}
+
+// Event functions
+impl<'a> Tree<'a> {
     pub fn click(&self, node: usize, mouse: Vec2) -> Option<usize> {
         if !mouse.inside(self.nodes[node].area) {
             return None;
@@ -95,6 +118,19 @@ impl<'a> Tree<'a> {
     }
 }
 
+// Debug functions
+impl<'a> Tree<'a> {
+    pub fn print(&self, node: usize, tab: usize) {
+        println!("{}{:?}", "| ".repeat(tab), self.nodes[node].kind);
+
+        let mut child = self.nodes[node].child;
+        while child != usize::MAX {
+            child = self.nodes[child].next;
+        }
+    }
+}
+
+// Render functions
 impl<'a> Tree<'a> {
     pub fn build(&mut self, root: usize, frame: &mut Frame, atlas: &mut FontAtlas) {
         // layout
@@ -111,10 +147,7 @@ impl<'a> Tree<'a> {
     }
 
     fn render(&self, frame: &mut Frame, atlas: &mut FontAtlas) {
-        // println!("");
-        // println!("RENDER");
         for node in &self.nodes {
-            // println!("{:?} @ {:?}", node.kind, node.area);
             if !frame.area.contains(node.area) || frame.area.is_zero() {
                 continue;
             }
@@ -160,18 +193,11 @@ impl<'a> Tree<'a> {
         }
     }
 
-    pub fn print(&self, node: usize, tab: usize) {
-        println!("{}{:?}", "| ".repeat(tab), self.nodes[node].kind);
-
-        let mut child = self.nodes[node].child;
-        while child != usize::MAX {
-            self.print(child, tab + 1);
-            child = self.nodes[child].next;
-        }
-    }
-
     fn layout(&mut self, node: usize, area: Area, atlas: &mut FontAtlas) -> Vec2 {
         match self.nodes[node].kind {
+            NodeKind::None => {
+                unreachable!()
+            }
             NodeKind::Clickable(_) => {
                 let child = self.nodes[node].child;
                 let size = self.layout(child, area, atlas);
