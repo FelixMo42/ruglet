@@ -10,10 +10,12 @@ const WS: f32 = 30.;
 // NODE //
 //////////
 
+#[derive(Debug)]
 pub enum NodeKind<'a> {
     Text(&'a str),
     Pad(f32),
     Scroll(f32),
+    Clickable(usize),
 }
 
 struct Node<'a> {
@@ -42,7 +44,7 @@ impl<'a> Tree<'a> {
         let child_id = if children.len() > 0 {
             // Each child should form a list
             for i in 0..children.len() - 1 {
-                self.nodes[children[i]].next = children[children[i + 1]];
+                self.nodes[children[i]].next = children[i + 1];
             }
 
             // Are child id should point towards the first child
@@ -64,6 +66,33 @@ impl<'a> Tree<'a> {
     pub fn update(&mut self, node: usize, kind: NodeKind<'a>) {
         self.nodes[node].kind = kind
     }
+
+    pub fn click(&self, node: usize, mouse: Vec2) -> Option<usize> {
+        if !mouse.inside(self.nodes[node].area) {
+            return None;
+        }
+
+        match self.nodes[node].kind {
+            NodeKind::Clickable(event_id) => {
+                return Some(event_id);
+            }
+            _ => {
+                let mut child = self.nodes[node].child;
+
+                while child != usize::MAX {
+                    let res = self.click(child, mouse);
+
+                    if res.is_some() {
+                        return res;
+                    }
+
+                    child = self.nodes[child].next;
+                }
+
+                return None;
+            }
+        };
+    }
 }
 
 impl<'a> Tree<'a> {
@@ -82,7 +111,10 @@ impl<'a> Tree<'a> {
     }
 
     fn render(&self, frame: &mut Frame, atlas: &mut FontAtlas) {
+        // println!("");
+        // println!("RENDER");
         for node in &self.nodes {
+            // println!("{:?} @ {:?}", node.kind, node.area);
             if !frame.area.contains(node.area) || frame.area.is_zero() {
                 continue;
             }
@@ -128,29 +160,50 @@ impl<'a> Tree<'a> {
         }
     }
 
+    pub fn print(&self, node: usize, tab: usize) {
+        println!("{}{:?}", "| ".repeat(tab), self.nodes[node].kind);
+
+        let mut child = self.nodes[node].child;
+        while child != usize::MAX {
+            self.print(child, tab + 1);
+            child = self.nodes[child].next;
+        }
+    }
+
     fn layout(&mut self, node: usize, area: Area, atlas: &mut FontAtlas) -> Vec2 {
         match self.nodes[node].kind {
+            NodeKind::Clickable(_) => {
+                let child = self.nodes[node].child;
+                let size = self.layout(child, area, atlas);
+
+                // Set area
+                self.nodes[child].area.0.x = area.0.x;
+                self.nodes[child].area.0.y = area.0.y;
+                self.nodes[child].area.1.x = area.0.x + size.x;
+                self.nodes[child].area.1.y = area.0.y + size.y;
+
+                return size;
+            }
             NodeKind::Pad(padding) => {
-                let child_area = Area(
+                let mut child_area = Area(
                     Vec2::new(area.0.x + padding, area.0.y + padding),
                     Vec2::new(area.1.x - padding, f32::MAX),
                 );
 
                 let mut child = self.nodes[node].child;
-                let mut y = child_area.0.y;
                 while child != usize::MAX {
                     let size = self.layout(child, child_area, atlas);
 
                     // Set area
                     self.nodes[child].area.0.x = child_area.0.x;
-                    self.nodes[child].area.0.y = y;
+                    self.nodes[child].area.0.y = child_area.0.y;
                     self.nodes[child].area.1.x = child_area.1.x;
-                    self.nodes[child].area.1.y = y + size.y;
+                    self.nodes[child].area.1.y = child_area.0.y + size.y;
 
                     // Move on, Mr. y
-                    y += size.y + LH;
+                    child_area.0.y += size.y + LH;
 
-                    if y > area.1.y {
+                    if child_area.0.y > area.1.y {
                         break;
                     }
 
@@ -159,7 +212,7 @@ impl<'a> Tree<'a> {
                 }
 
                 // Scroll should just take up the whole area
-                return Vec2::new(area.w(), y + padding * 2.);
+                return Vec2::new(area.w(), child_area.0.y + padding * 2.);
             }
             NodeKind::Scroll(scroll) => {
                 let child_area = Area(

@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Vec2 {
     pub x: f32,
@@ -12,10 +14,23 @@ impl Vec2 {
     pub fn new(x: f32, y: f32) -> Vec2 {
         return Vec2 { x, y };
     }
+
+    pub fn inside(&self, area: Area) -> bool {
+        return area.0.x <= self.x
+            && self.x <= area.1.x
+            && area.0.y <= self.y
+            && self.y <= area.1.y;
+    }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Area(pub Vec2, pub Vec2);
+
+impl Debug for Area {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{},{}-{},{}", self.0.x, self.0.y, self.1.x, self.1.y)
+    }
+}
 
 impl Area {
     pub fn zero() -> Area {

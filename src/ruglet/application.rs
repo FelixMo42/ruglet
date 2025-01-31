@@ -1,11 +1,15 @@
+use crate::ruglet::Vec2;
+
 use super::{renderer::Renderer, Frame};
 use winit::{error::EventLoopError, event::*, event_loop::*, window::WindowBuilder};
 
 pub trait Application {
-    fn on_draw(&mut self, frame: &mut Frame);
-
     // Event functions
     fn on_mouse_scroll(&mut self, _dx: f32, _dy: f32) {}
+    fn on_press(&mut self, _mouse: Vec2, _button: MouseButton) {}
+
+    // Handling
+    fn on_draw(&mut self, frame: &mut Frame);
 
     async fn run(&mut self) -> Result<(), EventLoopError> {
         // Initialize the window and event handler
@@ -18,6 +22,9 @@ pub trait Application {
 
         // Don't update if we don't have to
         event_loop.set_control_flow(ControlFlow::Wait);
+
+        // Where is the mouse?
+        let mut mouse = Vec2::zero();
 
         // Handle events as they come in
         use WindowEvent::*;
@@ -39,6 +46,15 @@ pub trait Application {
                 }
 
                 // Handle user inputs
+                CursorMoved { position, .. } => {
+                    mouse.x = position.x as f32;
+                    mouse.y = position.y as f32;
+                }
+                MouseInput { state, button, .. } => {
+                    if *state == ElementState::Released {
+                        self.on_press(mouse, *button);
+                    }
+                }
                 MouseWheel { delta, .. } => match delta {
                     MouseScrollDelta::PixelDelta(pos) => {
                         self.on_mouse_scroll(pos.x as f32, pos.y as f32);

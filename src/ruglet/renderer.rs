@@ -89,6 +89,11 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn render(&mut self, frame: Frame) -> Result<(), SurfaceError> {
+        // Make sure we actually have something to render
+        if frame.vertices.len() == 0 {
+            return Ok(());
+        }
+
         // Get the current texture to render to
         let output = self.surface.get_current_texture()?;
 
