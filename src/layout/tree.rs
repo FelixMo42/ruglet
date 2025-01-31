@@ -13,7 +13,7 @@ const WS: f32 = 30.;
 pub enum NodeKind<'a> {
     Text(&'a str),
     Pad(f32),
-    Scroll,
+    Scroll(f32),
 }
 
 struct Node<'a> {
@@ -60,6 +60,10 @@ impl<'a> Tree<'a> {
 
         return id;
     }
+
+    pub fn update(&mut self, node: usize, kind: NodeKind<'a>) {
+        self.nodes[node].kind = kind
+    }
 }
 
 impl<'a> Tree<'a> {
@@ -79,6 +83,10 @@ impl<'a> Tree<'a> {
 
     fn render(&self, frame: &mut Frame, atlas: &mut FontAtlas) {
         for node in &self.nodes {
+            if !frame.area.contains(node.area) || frame.area.is_zero() {
+                continue;
+            }
+
             match node.kind {
                 NodeKind::Text(text) => {
                     let mut x = node.area.0.x;
@@ -142,6 +150,10 @@ impl<'a> Tree<'a> {
                     // Move on, Mr. y
                     y += size.y + LH;
 
+                    if y > area.1.y {
+                        break;
+                    }
+
                     // Get next child
                     child = self.nodes[child].next;
                 }
@@ -149,17 +161,22 @@ impl<'a> Tree<'a> {
                 // Scroll should just take up the whole area
                 return Vec2::new(area.w(), y + padding * 2.);
             }
-            NodeKind::Scroll => {
+            NodeKind::Scroll(scroll) => {
+                let child_area = Area(
+                    Vec2::new(area.0.x, area.0.y - scroll),
+                    Vec2::new(area.1.x, f32::MAX),
+                );
+
                 // Layout all them children
                 let mut child = self.nodes[node].child;
-                let mut y = area.0.y;
+                let mut y = child_area.0.y;
                 while child != usize::MAX {
-                    let size = self.layout(child, area, atlas);
+                    let size = self.layout(child, child_area, atlas);
 
                     // Set area
-                    self.nodes[child].area.0.x = area.0.x;
+                    self.nodes[child].area.0.x = child_area.0.x;
                     self.nodes[child].area.0.y = y;
-                    self.nodes[child].area.1.x = area.1.x;
+                    self.nodes[child].area.1.x = child_area.1.x;
                     self.nodes[child].area.1.y = y + size.y;
 
                     // Move on, Mr. y
@@ -173,6 +190,11 @@ impl<'a> Tree<'a> {
                 return area.size();
             }
             NodeKind::Text(text) => {
+                // Just remeber the cache
+                if self.nodes[node].area.w() == area.w() {
+                    return self.nodes[node].area.size();
+                }
+
                 let mut h = LH;
 
                 let mut row = 0.;

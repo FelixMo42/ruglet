@@ -4,7 +4,7 @@ I <3 rust, and wanted a playground for rendering technologies.
 
 ## Roadmap
 
-- [ ] Better layout
+- Update the dom
 
 ## Known bugs
 
