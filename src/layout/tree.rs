@@ -1,6 +1,6 @@
 use crate::ruglet::*;
 
-use super::FontAtlas;
+use super::{FontAtlas, TextBook};
 
 const PX: f32 = 60.;
 const LH: f32 = 80.;
@@ -11,17 +11,17 @@ const WS: f32 = 30.;
 //////////
 
 #[derive(Debug, Clone)]
-pub enum NodeKind<'a> {
+pub enum NodeKind {
     None,
-    Text(&'a str),
+    Text(usize),
     Pad(f32),
     Scroll(f32),
     Clickable(usize),
 }
 
 #[derive(Clone)]
-struct Node<'a> {
-    kind: NodeKind<'a>,
+struct Node {
+    kind: NodeKind,
     child: usize,
     next: usize,
     area: Area,
@@ -31,17 +31,17 @@ struct Node<'a> {
 // TREE //
 //////////
 
-pub struct Tree<'a> {
-    nodes: Vec<Node<'a>>,
+pub struct Tree {
+    nodes: Vec<Node>,
 }
 
 // Build function
-impl<'a> Tree<'a> {
+impl Tree {
     pub fn new() -> Self {
         return Tree { nodes: vec![] };
     }
 
-    pub fn add(&mut self, kind: NodeKind<'a>, children: Vec<usize>) -> usize {
+    pub fn add(&mut self, kind: NodeKind, children: Vec<usize>) -> usize {
         let id = self.nodes.len();
 
         let child_id = if children.len() > 0 {
@@ -66,7 +66,11 @@ impl<'a> Tree<'a> {
         return id;
     }
 
-    pub fn update(&mut self, node: usize, kind: NodeKind<'a>) {
+    pub fn get(&self, id: usize) -> NodeKind {
+        return self.nodes[id].kind.clone();
+    }
+
+    pub fn update(&mut self, node: usize, kind: NodeKind) {
         self.nodes[node].kind = kind
     }
 
@@ -89,7 +93,7 @@ impl<'a> Tree<'a> {
 }
 
 // Event functions
-impl<'a> Tree<'a> {
+impl Tree {
     pub fn click(&self, node: usize, mouse: Vec2) -> Option<usize> {
         if !mouse.inside(self.nodes[node].area) {
             return None;
@@ -119,7 +123,7 @@ impl<'a> Tree<'a> {
 }
 
 // Debug functions
-impl<'a> Tree<'a> {
+impl Tree {
     pub fn print(&self, node: usize, tab: usize) {
         println!("{}{:?}", "| ".repeat(tab), self.nodes[node].kind);
 
@@ -131,10 +135,16 @@ impl<'a> Tree<'a> {
 }
 
 // Render functions
-impl<'a> Tree<'a> {
-    pub fn build(&mut self, root: usize, frame: &mut Frame, atlas: &mut FontAtlas) {
+impl Tree {
+    pub fn build(
+        &mut self,
+        root: usize,
+        frame: &mut Frame,
+        atlas: &mut FontAtlas,
+        text: &TextBook,
+    ) {
         // layout
-        self.layout(root, frame.area, atlas);
+        self.layout(root, frame.area, atlas, text);
         self.nodes[root].area = frame.area;
 
         // Update the texture if new glyphs have been added to the font atlas
@@ -143,21 +153,21 @@ impl<'a> Tree<'a> {
         }
 
         // render
-        self.render(frame, atlas);
+        self.render(frame, atlas, text);
     }
 
-    fn render(&self, frame: &mut Frame, atlas: &mut FontAtlas) {
+    fn render(&self, frame: &mut Frame, atlas: &mut FontAtlas, text: &TextBook) {
         for node in &self.nodes {
             if !frame.area.contains(node.area) || frame.area.is_zero() {
                 continue;
             }
 
             match node.kind {
-                NodeKind::Text(text) => {
+                NodeKind::Text(tid) => {
                     let mut x = node.area.0.x;
                     let mut y = node.area.0.y;
 
-                    for word in text.split_whitespace() {
+                    for word in text.get(tid).split_whitespace() {
                         let w: f32 = word.chars().map(|c| atlas.size(c, PX).x).sum();
                         if x + w + WS > node.area.1.x {
                             x = node.area.0.x;
@@ -193,14 +203,14 @@ impl<'a> Tree<'a> {
         }
     }
 
-    fn layout(&mut self, node: usize, area: Area, atlas: &mut FontAtlas) -> Vec2 {
+    fn layout(&mut self, node: usize, area: Area, atlas: &mut FontAtlas, text: &TextBook) -> Vec2 {
         match self.nodes[node].kind {
             NodeKind::None => {
                 unreachable!()
             }
             NodeKind::Clickable(_) => {
                 let child = self.nodes[node].child;
-                let size = self.layout(child, area, atlas);
+                let size = self.layout(child, area, atlas, text);
 
                 // Set area
                 self.nodes[child].area.0.x = area.0.x;
@@ -218,7 +228,7 @@ impl<'a> Tree<'a> {
 
                 let mut child = self.nodes[node].child;
                 while child != usize::MAX {
-                    let size = self.layout(child, child_area, atlas);
+                    let size = self.layout(child, child_area, atlas, text);
 
                     // Set area
                     self.nodes[child].area.0.x = child_area.0.x;
@@ -250,7 +260,7 @@ impl<'a> Tree<'a> {
                 let mut child = self.nodes[node].child;
                 let mut y = child_area.0.y;
                 while child != usize::MAX {
-                    let size = self.layout(child, child_area, atlas);
+                    let size = self.layout(child, child_area, atlas, text);
 
                     // Set area
                     self.nodes[child].area.0.x = child_area.0.x;
@@ -268,7 +278,7 @@ impl<'a> Tree<'a> {
                 // Scroll should just take up the whole area
                 return area.size();
             }
-            NodeKind::Text(text) => {
+            NodeKind::Text(tid) => {
                 // Just remeber the cache
                 if self.nodes[node].area.w() == area.w() {
                     return self.nodes[node].area.size();
@@ -277,7 +287,7 @@ impl<'a> Tree<'a> {
                 let mut h = LH;
 
                 let mut row = 0.;
-                for word in text.split_whitespace() {
+                for word in text.get(tid).split_whitespace() {
                     let w = word.chars().map(|c| atlas.size(c, PX).x).sum();
 
                     if area.0.x + row + w + WS > area.1.x {
