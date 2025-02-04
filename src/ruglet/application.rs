@@ -15,6 +15,7 @@ pub trait Application {
         // Initialize the window and event handler
         let event_loop = EventLoop::new().unwrap();
         let window = WindowBuilder::new().build(&event_loop).unwrap();
+        window.set_title("read");
 
         // Manage our wgpu stuff
         let mut renderer = Renderer::new(&window).await;

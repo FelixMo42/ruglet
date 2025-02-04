@@ -16,13 +16,13 @@ struct MyApp {
 }
 
 impl MyApp {
-    fn new() -> Self {
+    fn new(dir: &str) -> Self {
         let font = FontAtlas::new();
         let mut tree = Tree::new();
         let mut text = TextBook::new();
         let mut link = vec![];
 
-        let chapters = fs::read_dir("./res/files")
+        let chapters = fs::read_dir(dir)
             .unwrap()
             .map(|file| file.unwrap())
             .map(|file| {
@@ -60,8 +60,8 @@ impl MyApp {
 
         let paragraphs = text
             .lines()
-            .map(|option| {
-                let tid = self.text.add(&option);
+            .map(|line| {
+                let tid = self.text.add(&line);
                 return self.tree.add(NodeKind::Text(tid), vec![]);
             })
             .collect();
@@ -101,7 +101,7 @@ impl<'a> Application for MyApp {
 }
 
 fn main() {
-    let mut app = MyApp::new();
+    let mut app = MyApp::new("/Users/felixmoses/Library/Containers/com.apple.BKAgentService/Data/Documents/iBooks/Books/2A2BC927A5ECC63CC1566A50E4DB8941.epub/OEBPS");
 
     if let Err(e) = pollster::block_on(app.run()) {
         eprintln!("Render: {:?}", e);
